@@ -7,6 +7,10 @@ Sol Advisor is a Codex-only workflow for capability-routed software delivery. Yo
 bring the goal and constraints; Sol owns the plan, implementation or delegation,
 verification, and acceptance.
 
+This fork tracks the upstream design and adds automatic primary-session runtime
+inspection, fail-closed reviewer isolation evidence, portable verifier interpreter
+detection, and Linux/macOS continuous verification.
+
 ## Go deeper
 
 I write [**Attention Heads**](https://attentionheads.substack.com/?utm_source=github&utm_medium=readme&utm_campaign=sol-advisor) — deep, evidence-backed writing on AI, cognition, and agentic engineering. The **Agentic Engineering Field Notes** series is where I publish practical advice on the craft of using AI. [Subscribe](https://attentionheads.substack.com/subscribe?utm_source=github&utm_medium=readme&utm_campaign=sol-advisor) to get new posts to your inbox.
@@ -18,9 +22,9 @@ Sol / High for the primary session, native custom-agent support, and jq. GPT-5.6
 Luna / Max or Terra / High access is needed only when the selected route delegates.
 
 ~~~sh
-codex plugin marketplace add DannyMac180/sol-advisor --ref main
-codex plugin add sol-advisor@sol-advisor
-plugin_dir="$(codex plugin list --json | jq -r '.installed[] | select(.pluginId == "sol-advisor@sol-advisor") | .source.path')" && test -n "$plugin_dir" && test "$plugin_dir" != null && test -d "$plugin_dir" && test -f "$plugin_dir/scripts/install-agents.sh" && sh "$plugin_dir/scripts/install-agents.sh"
+codex plugin marketplace add haohanw/sol-advisor --ref main
+codex plugin add sol-advisor@haohanw-sol-advisor
+plugin_dir="$(codex plugin list --json | jq -r '.installed[] | select(.pluginId == "sol-advisor@haohanw-sol-advisor") | .source.path')" && test -n "$plugin_dir" && test "$plugin_dir" != null && test -d "$plugin_dir" && test -f "$plugin_dir/scripts/install-agents.sh" && sh "$plugin_dir/scripts/install-agents.sh"
 ~~~
 
 The companion installer verifies all three exact role files after installation. It is
@@ -67,9 +71,9 @@ High reviewer returns ship, fix-first, or rethink; any fix requires a new review
 Update the marketplace plugin, reinstall the companion roles, and start a new task:
 
 ~~~sh
-codex plugin marketplace upgrade sol-advisor
-codex plugin add sol-advisor@sol-advisor
-plugin_dir="$(codex plugin list --json | jq -r '.installed[] | select(.pluginId == "sol-advisor@sol-advisor") | .source.path')" && test -n "$plugin_dir" && test "$plugin_dir" != null && test -d "$plugin_dir" && test -f "$plugin_dir/scripts/install-agents.sh" && sh "$plugin_dir/scripts/install-agents.sh"
+codex plugin marketplace upgrade haohanw-sol-advisor
+codex plugin add sol-advisor@haohanw-sol-advisor
+plugin_dir="$(codex plugin list --json | jq -r '.installed[] | select(.pluginId == "sol-advisor@haohanw-sol-advisor") | .source.path')" && test -n "$plugin_dir" && test "$plugin_dir" != null && test -d "$plugin_dir" && test -f "$plugin_dir/scripts/install-agents.sh" && sh "$plugin_dir/scripts/install-agents.sh"
 ~~~
 
 For exact spawn, runtime-evidence, sandbox, installer, and maintainer verification
@@ -79,5 +83,9 @@ For local development, install this checkout as a marketplace:
 ~~~sh
 cd /absolute/path/to/sol-advisor
 codex plugin marketplace add /absolute/path/to/sol-advisor
-codex plugin add sol-advisor@sol-advisor
+codex plugin add sol-advisor@haohanw-sol-advisor
 ~~~
+
+Maintainer verification requires Python 3.11+ and `jq`. The verifier automatically
+finds `python3.11` through `python3.14` before trying `python3`; set
+`SOL_ADVISOR_PYTHON` to select another compatible interpreter.

@@ -6,6 +6,19 @@ set -eu
 pass() { printf '%s\n' "PASS: $*"; }
 fail() { printf '%s\n' "FAIL: $*" >&2; exit 1; }
 
+resolve_python() {
+  for candidate in \
+    "${SOL_ADVISOR_PYTHON-}" \
+    python3.14 python3.13 python3.12 python3.11 python3; do
+    [ -n "$candidate" ] || continue
+    if "$candidate" -c 'import tomllib' >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  fail "Python 3.11+ with tomllib is required; set SOL_ADVISOR_PYTHON to a compatible interpreter."
+}
+
 script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd) || exit 1
 plugin_dir=$(CDPATH= cd "$script_dir/.." && pwd) || exit 1
 repo_dir=$(CDPATH= cd "$plugin_dir/../.." && pwd) || exit 1
@@ -163,16 +176,18 @@ test ! -e "$retired_contract" || fail "retired separate workflow contract remain
 pass "required files present and retired contract absent"
 
 jq empty "$manifest"
-[ "$(jq -r '.version' "$manifest")" = 0.6.0 ] || fail "manifest version is not 0.6.0"
+[ "$(jq -r '.version' "$manifest")" = 0.6.1 ] || fail "manifest version is not 0.6.1"
 grep -Fq 'SELECTIVE ROUTE' "$manifest" || fail "manifest omits route declaration"
 grep -Fq 'solo is the default' "$manifest" || fail "manifest omits solo default"
 grep -Fq 'delegate uses native GPT-5.6 Luna / Max' "$manifest" || fail "manifest omits delegate role contract"
 grep -Fq 'audit uses a fresh read-only GPT-5.6 Sol / High review' "$manifest" || fail "manifest omits audit contract"
 grep -Fq 'full combines one selected implementer' "$manifest" || fail "manifest omits exceptional full contract"
 grep -Fq 'fails closed' "$manifest" || fail "manifest omits fail-closed evidence rule"
-pass "manifest JSON, v0.6.0 release, and selective-routing language"
+pass "manifest JSON, v0.6.1 release, and selective-routing language"
 
-python3 - "$templates" <<'PY'
+python_bin=$(resolve_python)
+
+"$python_bin" - "$templates" <<'PY'
 from pathlib import Path
 import sys
 import tomllib
@@ -387,6 +402,40 @@ zero_id=22222222-2222-7222-8222-222222222222
 if sh "$runtime_inspector" --sessions-dir "$runtime_sessions" "$zero_id" >/dev/null 2>&1; then fail "runtime inspector accepted zero matches"; fi
 pass "runtime inspector Luna/Max routing and safe refusal"
 
+reviewer_id=77777777-7777-7777-8777-777777777777
+reviewer_rollout=$runtime_day/rollout-2026-08-15T00-00-01-$reviewer_id.jsonl
+reviewer_session="{\"type\":\"session_meta\",\"payload\":{\"id\":\"$reviewer_id\",\"parent_thread_id\":\"00000000-0000-7000-8000-000000000000\",\"agent_role\":\"sol_advisor_sol_reviewer\",\"agent_path\":\"/root/reviewer-fixture\",\"model_provider\":\"openai\",\"cwd\":\"/reviewer-fixture\"}}"
+
+write_reviewer_turn() {
+  printf '%s\n' "$reviewer_session" "$1" > "$reviewer_rollout"
+}
+
+expect_reviewer_refusal() {
+  label=$1
+  write_reviewer_turn "$2"
+  if sh "$runtime_inspector" --sessions-dir "$runtime_sessions" "$reviewer_id" >/dev/null 2>&1; then
+    fail "runtime inspector accepted reviewer with $label"
+  fi
+}
+
+write_reviewer_turn '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":"read-only"},"permission_profile":{"type":"managed"},"cwd":"/reviewer-fixture"}}'
+reviewer_output=$(sh "$runtime_inspector" --sessions-dir "$runtime_sessions" "$reviewer_id")
+printf '%s\n' "$reviewer_output" | jq -e --arg id "$reviewer_id" '
+  .thread_id == $id and .agent_role == "sol_advisor_sol_reviewer"
+  and .model == "gpt-5.6-sol" and .effort == "high"
+  and .sandbox_policy_type == "read-only"
+  and .permission_profile_type == "managed"
+  and .cwd == "/reviewer-fixture"
+' >/dev/null || fail "runtime inspector returned wrong reviewer evidence"
+
+expect_reviewer_refusal "missing sandbox policy type" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","permission_profile":{"type":"managed"},"cwd":"/reviewer-fixture"}}'
+expect_reviewer_refusal "empty sandbox policy type" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":""},"permission_profile":{"type":"managed"},"cwd":"/reviewer-fixture"}}'
+expect_reviewer_refusal "missing permission profile type" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":"read-only"},"cwd":"/reviewer-fixture"}}'
+expect_reviewer_refusal "empty permission profile type" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":"read-only"},"permission_profile":{"type":""},"cwd":"/reviewer-fixture"}}'
+expect_reviewer_refusal "missing working directory" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":"read-only"},"permission_profile":{"type":"managed"}}}'
+expect_reviewer_refusal "empty working directory" '{"type":"turn_context","payload":{"model":"gpt-5.6-sol","effort":"high","sandbox_policy":{"type":"read-only"},"permission_profile":{"type":"managed"},"cwd":""}}'
+pass "runtime inspector reviewer evidence and fail-closed missing or empty values"
+
 primary_sessions=$tmp_dir/primary-runtime-sessions
 primary_day=$primary_sessions/2026/08/16
 mkdir -p "$primary_day"
@@ -518,7 +567,7 @@ grep -Fq 'newly observed' "$readme" || fail "README omits escalation gate"
 grep -Fq 'never silently downgrades' "$readme" || fail "README permits silent downgrade"
 grep -Fq 'need to select or manage a lane' "$readme" || fail "README asks users to manage lanes"
 grep -Fq 'Luna / Max or Terra / High access is needed only when' "$readme" || fail "README omits conditional delegate access"
-python3 - "$readme" <<'PY'
+"$python_bin" - "$readme" <<'PY'
 from pathlib import Path
 import sys
 
@@ -541,7 +590,7 @@ print("two companion install examples are fail-closed and guarded")
 PY
 pass "README is concise, user-first, route-tabled, and keeps maintainer machinery out"
 
-python3 - "$readme" "$manifest" "$skill" "$contracts" "$operations" "$ui" "$templates" <<'PY'
+"$python_bin" - "$readme" "$manifest" "$skill" "$contracts" "$operations" "$ui" "$templates" <<'PY'
 from pathlib import Path
 import sys
 
@@ -600,4 +649,4 @@ sh -n "$runtime_inspector"
 sh -n "$script_dir/verify.sh"
 pass "shell syntax"
 
-printf '%s\n' "VERIFY PASSED: Sol Advisor v0.6.0 selective routing checks completed in $tmp_dir"
+printf '%s\n' "VERIFY PASSED: Sol Advisor v0.6.1 selective routing checks completed in $tmp_dir"

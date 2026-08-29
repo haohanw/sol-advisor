@@ -1,7 +1,7 @@
 {
-  "name": "sol-advisor",
+  "name": "haohanw-sol-advisor",
   "interface": {
-    "displayName": "Sol Advisor"
+    "displayName": "Sol Advisor (haohanw fork)"
   },
   "plugins": [
     {
