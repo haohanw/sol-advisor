@@ -176,14 +176,14 @@ test ! -e "$retired_contract" || fail "retired separate workflow contract remain
 pass "required files present and retired contract absent"
 
 jq empty "$manifest"
-[ "$(jq -r '.version' "$manifest")" = 0.6.1 ] || fail "manifest version is not 0.6.1"
+[ "$(jq -r '.version' "$manifest")" = 0.6.2 ] || fail "manifest version is not 0.6.2"
 grep -Fq 'SELECTIVE ROUTE' "$manifest" || fail "manifest omits route declaration"
 grep -Fq 'solo is the default' "$manifest" || fail "manifest omits solo default"
 grep -Fq 'delegate uses native GPT-5.6 Luna / Max' "$manifest" || fail "manifest omits delegate role contract"
 grep -Fq 'audit uses a fresh read-only GPT-5.6 Sol / High review' "$manifest" || fail "manifest omits audit contract"
 grep -Fq 'full combines one selected implementer' "$manifest" || fail "manifest omits exceptional full contract"
 grep -Fq 'fails closed' "$manifest" || fail "manifest omits fail-closed evidence rule"
-pass "manifest JSON, v0.6.1 release, and selective-routing language"
+pass "manifest JSON, v0.6.2 release, and selective-routing language"
 
 python_bin=$(resolve_python)
 
@@ -503,6 +503,10 @@ grep -Fq 'Solo is the default' "$skill" || fail "skill omits solo default"
 grep -Fq 'One auxiliary agent is the default maximum' "$skill" || fail "skill omits auxiliary limit"
 grep -Fq 'A later declaration may only escalate the route when newly' "$skill" || fail "skill omits escalation gate"
 grep -Fq 'never silently downgrade' "$skill" || fail "skill permits silent downgrade"
+grep -Fq 'Prefer solo unless the task is clearly multi-part and parallelizable with net benefit.' "$skill" || fail "skill omits net-benefit solo preference"
+grep -Fq 'Produce the minimal viable plan only. No elaborate architecture docs unless explicitly requested.' "$skill" || fail "skill omits minimal-plan constraint"
+grep -Fq 'Maximum 3-4 task packets. Prefer fewer.' "$skill" || fail "skill omits task-packet cap"
+grep -Fq 'Explicitly reject any design that adds complexity for hypothetical future needs.' "$skill" || fail "skill omits anti-speculative-complexity constraint"
 grep -Fq -- '--primary "$CODEX_THREAD_ID"' "$skill" || fail "skill omits exact primary runtime inspection"
 grep -Fq 'pending local inspection' "$skill" || fail "skill omits pre-inspection route disclosure"
 grep -Fq 'manual attestation' "$skill" || fail "skill permits unverified primary attestation"
@@ -649,4 +653,4 @@ sh -n "$runtime_inspector"
 sh -n "$script_dir/verify.sh"
 pass "shell syntax"
 
-printf '%s\n' "VERIFY PASSED: Sol Advisor v0.6.1 selective routing checks completed in $tmp_dir"
+printf '%s\n' "VERIFY PASSED: Sol Advisor v0.6.2 selective routing checks completed in $tmp_dir"

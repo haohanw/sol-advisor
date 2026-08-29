@@ -11,6 +11,12 @@ acceptance. Selective routing has four exact modes: `solo`, `delegate`, `audit`,
 `full`. Solo is the default. One auxiliary agent is the default maximum; full is an
 explicit broad or high-risk exception.
 
+Additional constraints for the orchestrator:
+- Prefer solo unless the task is clearly multi-part and parallelizable with net benefit.
+- Produce the minimal viable plan only. No elaborate architecture docs unless explicitly requested.
+- Maximum 3-4 task packets. Prefer fewer.
+- Explicitly reject any design that adds complexity for hypothetical future needs.
+
 Read [references/role-contracts.md](references/role-contracts.md) before the first
 delegation. Use [references/operations.md](references/operations.md) for exact spawn,
 preflight, runtime-evidence, isolation, and maintainer procedures.

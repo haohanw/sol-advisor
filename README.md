@@ -66,6 +66,13 @@ for root work; it does not duplicate it. The root inspects the complete diff and
 reruns the requested checks. When the selected route includes a review, a fresh Sol /
 High reviewer returns ship, fix-first, or rethink; any fix requires a new review.
 
+## Built-in delivery constraints
+
+- Prefer solo unless the task is clearly multi-part and parallelizable with net benefit.
+- Produce the minimal viable plan only. No elaborate architecture docs unless explicitly requested.
+- Maximum 3-4 task packets. Prefer fewer.
+- Explicitly reject any design that adds complexity for hypothetical future needs.
+
 ## Updating
 
 Update the marketplace plugin, reinstall the companion roles, and start a new task:
